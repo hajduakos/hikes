@@ -214,6 +214,136 @@ buildTable();
 // ---- Elevation profile (pre-computed at generation time — no runtime sampling) ----
 const elevSegments = PROFILE;
 
+// ---- Hover readout ----
+// Distances everywhere below are true metres walked, measured on the full-resolution
+// GPX track at generation time: PROFILE[i].d for the chart, points[i][3] for the map.
+// Neither is re-measured from the decimated polyline, which cuts corners and would
+// under-read by ~10%.
+const HOVER_COLOR = '#2196f3';
+const segLayout = [];   // {x0, w, maxD} per segment in CSS px, refreshed on every draw
+let hover = null;       // {x, ele, dist} while the pointer is over the chart
+let hoverMarker = null; // blue dot on the map at the matching point
+
+// Distance at which each track starts, so the readout counts from the trek's start.
+const trackStartDist = [];
+let trekDist = 0;
+elevSegments.forEach(seg => {
+  trackStartDist.push(trekDist);
+  trekDist += seg.d[seg.d.length - 1];
+});
+
+const hoverIcon = L.divIcon({
+  className: '',
+  html: '<div style="width:12px;height:12px;background:' + HOVER_COLOR +
+        ';border:2px solid #fff;border-radius:50%;box-shadow:0 0 4px rgba(0,0,0,.6);"></div>',
+  iconSize: [12, 12], iconAnchor: [6, 6],
+});
+function setHoverMarker(latlng) {
+  if (!latlng) {
+    if (hoverMarker) { map.removeLayer(hoverMarker); hoverMarker = null; }
+    return;
+  }
+  if (hoverMarker) hoverMarker.setLatLng(latlng);
+  else hoverMarker = L.marker(latlng, { icon: hoverIcon, interactive: false, zIndexOffset: 2000 }).addTo(map);
+}
+
+// Index of the last entry <= v, assuming `at` reads an ascending key.
+function bracket(arr, v, at) {
+  let lo = 0, hi = arr.length - 1;
+  while (hi - lo > 1) {
+    const mid = (lo + hi) >> 1;
+    if (at(arr[mid]) <= v) lo = mid; else hi = mid;
+  }
+  return lo;
+}
+// Clamped so the sub-metre rounding difference between the profile distances (0.1 m)
+// and the per-point ones (1 m) can never extrapolate past either end of a track.
+function frac(d, a, b) {
+  const span = b - a;
+  return span > 0 ? Math.max(0, Math.min(1, (d - a) / span)) : 0;
+}
+function lerpElevation(seg, d) {
+  if (seg.d.length < 2) return seg.e[0];
+  const i = bracket(seg.d, d, x => x);
+  const f = frac(d, seg.d[i], seg.d[i + 1]);
+  return seg.e[i] + (seg.e[i + 1] - seg.e[i]) * f;
+}
+// Walk the rendered polyline by its stored true distance to find the map position.
+function pointAtDistance(pts, d) {
+  if (pts.length < 2) return [pts[0][0], pts[0][1]];
+  const i = bracket(pts, d, p => p[3]);
+  const f = frac(d, pts[i][3], pts[i + 1][3]);
+  return [pts[i][0] + (pts[i + 1][0] - pts[i][0]) * f,
+          pts[i][1] + (pts[i + 1][1] - pts[i][1]) * f];
+}
+
+function updateHover(x) {
+  if (!segLayout.length) return;
+  const last = segLayout[segLayout.length - 1];
+  x = Math.max(0, Math.min(last.x0 + last.w, x));
+  let i = segLayout.findIndex(s => x < s.x0 + s.w);
+  if (i < 0) i = segLayout.length - 1;
+  const s = segLayout[i];
+  const d = s.w > 0 ? Math.max(0, Math.min(s.maxD, ((x - s.x0) / s.w) * s.maxD)) : 0;
+  hover = { x, ele: lerpElevation(elevSegments[i], d), dist: trackStartDist[i] + d };
+  setHoverMarker(pointAtDistance(TRACKS[i].points, d));
+  drawElevationChart();
+}
+function clearHover() {
+  if (!hover) return;
+  hover = null;
+  setHoverMarker(null);
+  drawElevationChart();
+}
+
+// Vertical line at the cursor, plus a dot and a label on the profile itself.
+function drawHoverReadout(ctx, W, H, minE, maxE) {
+  if (!hover) return;
+  const y = H - ((hover.ele - minE) / (maxE - minE)) * H;
+  ctx.save();
+  ctx.strokeStyle = '#fff';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(Math.round(hover.x) + 0.5, 0);
+  ctx.lineTo(Math.round(hover.x) + 0.5, H);
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.arc(hover.x, y, 4, 0, Math.PI * 2);
+  ctx.fillStyle = HOVER_COLOR;
+  ctx.fill();
+  ctx.strokeStyle = '#fff';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  // Two-line readout: distance travelled on top, altitude below. The arrows are drawn
+  // in their own column so both values line up despite the glyphs differing in width.
+  const distTxt = (hover.dist / 1000).toFixed(2) + ' km';
+  const eleTxt = Math.round(hover.ele) + ' m';
+  ctx.font = '11px sans-serif';
+  const padX = 6, padY = 4, lineH = 13, gap = 4;
+  const arrowW = Math.max(ctx.measureText('→').width, ctx.measureText('↑').width);
+  const textX = padX + arrowW + gap;
+  const boxW = textX + Math.max(ctx.measureText(distTxt).width, ctx.measureText(eleTxt).width) + padX;
+  const boxH = lineH * 2 + padY * 2;
+  let bx = hover.x + 10;
+  if (bx + boxW > W) bx = hover.x - 10 - boxW;
+  bx = Math.max(0, Math.min(W - boxW, bx));
+  let by = y - boxH - 5;
+  if (by < 0) by = y + 5;
+  by = Math.max(0, Math.min(H - boxH, by));
+  ctx.fillStyle = 'rgba(0,0,0,0.72)';
+  ctx.fillRect(bx, by, boxW, boxH);
+  ctx.fillStyle = '#fff';
+  ctx.textBaseline = 'middle';
+  const yTop = by + padY + lineH / 2, yBottom = by + padY + lineH * 1.5;
+  ctx.fillText('→', bx + padX, yTop);
+  ctx.fillText(distTxt, bx + textX, yTop);
+  ctx.fillText('↑', bx + padX, yBottom);
+  ctx.fillText(eleTxt, bx + textX, yBottom);
+  ctx.restore();
+}
+
 function drawElevationChart() {
   const ctx = elevationCanvas.getContext('2d');
   const dpr = window.devicePixelRatio || 1;
@@ -239,10 +369,12 @@ function drawElevationChart() {
 
   ctx.clearRect(0, 0, W, H);
   let cumPxOffset = 0;
+  segLayout.length = 0;
   elevSegments.forEach((seg, segIdx) => {
     const dim = profileHighlight != null && segIdx !== profileHighlight;
     const segMaxD = seg.d[seg.d.length - 1];
     const segW = totalSegDist > 0 ? (segMaxD / totalSegDist) * usableW : 0;
+    segLayout.push({ x0: cumPxOffset, w: segW, maxD: segMaxD });
     const coords = seg.e.map((ev, i) => ({
       x: cumPxOffset + (segMaxD > 0 ? (seg.d[i] / segMaxD) * segW : 0),
       y: H - ((ev - minE) / (maxE - minE)) * H,
@@ -291,7 +423,16 @@ function drawElevationChart() {
     ctx.fillStyle = 'rgba(255,255,255,0.6)';
     ctx.fillText(el + ' m', 4, Math.max(10, y - 3));
   }
+
+  drawHoverReadout(ctx, W, H, minE, maxE);
 }
+
+// Pointer events cover mouse and touch-drag alike.
+elevationCanvas.addEventListener('pointermove', (e) => {
+  updateHover(e.clientX - elevationCanvas.getBoundingClientRect().left);
+});
+elevationCanvas.addEventListener('pointerleave', clearHover);
+elevationCanvas.addEventListener('pointercancel', clearHover);
 
 // ---- Layout: table fills the right; map takes the remaining space (not behind
 //      the table or the elevation chart) ----
@@ -327,6 +468,7 @@ updateLayout();
 map.fitBounds(allBounds, { padding: [30, 30] });
 drawElevationChart();
 window.addEventListener('resize', () => {
+  clearHover();   // the cursor position no longer maps to the same point
   updateLayout();
   drawElevationChart();
 });
