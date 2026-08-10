@@ -216,7 +216,7 @@ const elevSegments = PROFILE;
 
 // ---- Hover readout ----
 // Distances everywhere below are true metres walked, measured on the full-resolution
-// GPX track at generation time: PROFILE[i].d for the chart, points[i][3] for the map.
+// GPX track at generation time: PROFILE[i].distances for the chart, points[i][3] for the map.
 // Neither is re-measured from the decimated polyline, which cuts corners and would
 // under-read by ~10%.
 const HOVER_COLOR = '#2196f3';
@@ -229,7 +229,7 @@ const trackStartDist = [];
 let trekDist = 0;
 elevSegments.forEach(seg => {
   trackStartDist.push(trekDist);
-  trekDist += seg.d[seg.d.length - 1];
+  trekDist += seg.distances[seg.distances.length - 1];
 });
 
 const hoverIcon = L.divIcon({
@@ -263,10 +263,10 @@ function frac(d, a, b) {
   return span > 0 ? Math.max(0, Math.min(1, (d - a) / span)) : 0;
 }
 function lerpElevation(seg, d) {
-  if (seg.d.length < 2) return seg.e[0];
-  const i = bracket(seg.d, d, x => x);
-  const f = frac(d, seg.d[i], seg.d[i + 1]);
-  return seg.e[i] + (seg.e[i + 1] - seg.e[i]) * f;
+  if (seg.distances.length < 2) return seg.elevations[0];
+  const i = bracket(seg.distances, d, x => x);
+  const f = frac(d, seg.distances[i], seg.distances[i + 1]);
+  return seg.elevations[i] + (seg.elevations[i + 1] - seg.elevations[i]) * f;
 }
 // Walk the rendered polyline by its stored true distance to find the map position.
 function pointAtDistance(pts, d) {
@@ -355,14 +355,14 @@ function drawElevationChart() {
   const W = rect.width, H = rect.height;
 
   let globalMinE = Infinity, globalMaxE = -Infinity;
-  elevSegments.forEach(seg => seg.e.forEach(e => {
+  elevSegments.forEach(seg => seg.elevations.forEach(e => {
     if (e < globalMinE) globalMinE = e;
     if (e > globalMaxE) globalMaxE = e;
   }));
   const minE = globalMinE - 20, maxE = globalMaxE + 20;
 
   let totalSegDist = 0;
-  elevSegments.forEach(seg => { totalSegDist += seg.d[seg.d.length - 1]; });
+  elevSegments.forEach(seg => { totalSegDist += seg.distances[seg.distances.length - 1]; });
   const numGaps = elevSegments.length > 1 ? elevSegments.length - 1 : 0;
   const gapPx = 0;
   const usableW = W - numGaps * gapPx;
@@ -372,11 +372,11 @@ function drawElevationChart() {
   segLayout.length = 0;
   elevSegments.forEach((seg, segIdx) => {
     const dim = profileHighlight != null && segIdx !== profileHighlight;
-    const segMaxD = seg.d[seg.d.length - 1];
+    const segMaxD = seg.distances[seg.distances.length - 1];
     const segW = totalSegDist > 0 ? (segMaxD / totalSegDist) * usableW : 0;
     segLayout.push({ x0: cumPxOffset, w: segW, maxD: segMaxD });
-    const coords = seg.e.map((ev, i) => ({
-      x: cumPxOffset + (segMaxD > 0 ? (seg.d[i] / segMaxD) * segW : 0),
+    const coords = seg.elevations.map((ev, i) => ({
+      x: cumPxOffset + (segMaxD > 0 ? (seg.distances[i] / segMaxD) * segW : 0),
       y: H - ((ev - minE) / (maxE - minE)) * H,
     }));
 
@@ -394,8 +394,8 @@ function drawElevationChart() {
 
     // slope-coloured line on top
     for (let i = 0; i < coords.length - 1; i++) {
-      const rise = seg.e[i + 1] - seg.e[i];
-      const run = seg.d[i + 1] - seg.d[i];
+      const rise = seg.elevations[i + 1] - seg.elevations[i];
+      const run = seg.distances[i + 1] - seg.distances[i];
       ctx.beginPath();
       ctx.moveTo(coords[i].x, coords[i].y);
       ctx.lineTo(coords[i + 1].x, coords[i + 1].y);
