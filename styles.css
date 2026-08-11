@@ -28,6 +28,22 @@
     padding: 16px;
   }
 
+  /* Map labels. The span shifts itself by a percentage of its own (text-dependent)
+     size, so `align` names the side of the coordinate the plate sits on. */
+  .map-label {
+    position: absolute; left: 0; top: 0;
+    pointer-events: none;   /* clicks pass through to the track underneath */
+    white-space: nowrap;
+    padding: 1px 3px; border-radius: 3px;
+    background: rgba(0, 0, 0, 0.5); color: #fff;
+    font-size: 12px; line-height: 1.4;
+  }
+  .map-label.align-center { transform: translate(-50%, -50%); }
+  .map-label.align-right  { transform: translate(0, -50%); margin-left: 6px; }
+  .map-label.align-left   { transform: translate(-100%, -50%); margin-left: -6px; }
+  .map-label.align-top    { transform: translate(-50%, -100%); margin-top: -6px; }
+  .map-label.align-bottom { transform: translate(-50%, 0); margin-top: 6px; }
+
   #tracks-table { width: 100%; border-collapse: collapse; font-size: 12px; }
   #tracks-table th {
     text-align: left; padding: 6px 8px;
@@ -60,6 +76,8 @@
     width: 30px; height: 30px;
   }
   .map-fs-btn svg { width: 18px; height: 18px; display: block; }
+  /* text-based control icon ("Aa"), sized to sit alongside the 18px svg ones */
+  .map-fs-btn .ctrl-text { font-size: 15px; font-weight: 600; line-height: 1; }
   .map-fs-btn a.off { opacity: 0.4; }
 
   /* photo thumbnails on the map */

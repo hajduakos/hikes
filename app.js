@@ -1,4 +1,5 @@
-// Shared hike viewer. Reads globals from the page: TRACKS, TOTAL, PHOTOS, PROFILE, CONFIG.
+// Shared hike viewer. Reads globals from the page: TRACKS, TOTAL, PHOTOS, PROFILE,
+// LABELS, CONFIG.
 
 const LINE_COLOR = '#8b0000';      // solid dark red
 const LINE_WEIGHT = 4;
@@ -41,9 +42,11 @@ const ICON_COMPRESS = '<svg viewBox="0 0 24 24"><path fill="currentColor" d="M5 
 const ICON_TERRAIN = '<svg viewBox="0 0 24 24"><path fill="currentColor" d="M14 6l-4.22 5.63 1.25 1.67L14 9.33 19 16h-8.46l-4.01-5.37L1 18h22L14 6z"/></svg>';
 const ICON_SATELLITE = '<svg viewBox="0 0 24 24"><path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>';
 const ICON_IMAGE = '<svg viewBox="0 0 24 24"><path fill="currentColor" d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>';
+const ICON_LABEL = '<span class="ctrl-text">Aa</span>';
 let mapFull = false;
 let photosVisible = false;
-let fullBtnLink = null, layerBtnLink = null, photoBtnLink = null;
+let labelsVisible = true;
+let fullBtnLink = null, layerBtnLink = null, labelBtnLink = null, photoBtnLink = null;
 function setMapFull(on) {
   mapFull = on;
   fullBtnLink.innerHTML = on ? ICON_COMPRESS : ICON_EXPAND;
@@ -91,6 +94,35 @@ function setPhotos(on) {
   photoBtnLink.classList.toggle('off', !on);
   photoBtnLink.title = on ? 'Hide photos' : 'Show photos';
 }
+function setLabels(on) {
+  labelsVisible = on;
+  labelBtnLink.classList.toggle('off', !on);
+  labelBtnLink.title = on ? 'Hide labels' : 'Show labels';
+  applyLabels(selectedIdx);
+}
+
+// ---- Map labels ----
+// Each label is pinned to a coordinate; `align` names the side of that point the plate
+// sits on ('center' covers it). The marker itself is zero-sized and Leaflet drives its
+// transform, so the offset lives on an inner span that CSS shifts by its own size.
+const labelMarkers = LABELS.map(l => L.marker([l.lat, l.lon], {
+  icon: L.divIcon({
+    className: '',
+    html: '<span class="map-label align-' + (l.align || 'center') + '">' + l.text + '</span>',
+    iconSize: [0, 0], iconAnchor: [0, 0],
+  }),
+  interactive: false,   // never swallow clicks meant for the track underneath
+  zIndexOffset: 500,
+}));
+// Visible when the labels toggle is on and either nothing is selected, or the selected
+// track is one of the label's own.
+function applyLabels(idx) {
+  labelMarkers.forEach((m, i) => {
+    const show = labelsVisible && (idx == null || (LABELS[i].indices || []).indexOf(idx) >= 0);
+    if (show) m.addTo(map); else map.removeLayer(m);
+  });
+}
+applyLabels(null);   // not setLabels(): the button and selectedIdx do not exist yet
 
 // ---- Controls (bottom-left): fullscreen + terrain/satellite + photos ----
 function makeCtrlBtn(parent, icon, title, handler) {
@@ -108,6 +140,7 @@ mapControls.onAdd = function () {
   const wrap = L.DomUtil.create('div', 'map-ctrls');
   fullBtnLink = makeCtrlBtn(wrap, ICON_EXPAND, 'Full screen', () => setMapFull(!mapFull));
   layerBtnLink = makeCtrlBtn(wrap, ICON_SATELLITE, 'Satellite', () => setSatellite(!satellite));
+  labelBtnLink = makeCtrlBtn(wrap, ICON_LABEL, 'Hide labels', () => setLabels(!labelsVisible));
   photoBtnLink = makeCtrlBtn(wrap, ICON_IMAGE, 'Hide photos', () => setPhotos(!photosVisible));
   return wrap;
 };
@@ -140,6 +173,7 @@ function applyHighlight(idx) {
       if (show) m.addTo(map); else map.removeLayer(m);
     });
   });
+  applyLabels(idx);
   drawElevationChart();
   tracksPanel.querySelectorAll('tr[data-track-idx]').forEach(r => {
     r.classList.toggle('selected', parseInt(r.dataset.trackIdx) === idx);
