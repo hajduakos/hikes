@@ -36,7 +36,7 @@
     white-space: nowrap;
     padding: 1px 3px; border-radius: 3px;
     background: rgba(0, 0, 0, 0.5); color: #fff;
-    font-size: 12px; line-height: 1.4;
+    font-size: 11px; line-height: 1.4;
   }
   .map-label.align-center { transform: translate(-50%, -50%); }
   .map-label.align-right  { transform: translate(0, -50%); margin-left: 6px; }
