@@ -44,6 +44,21 @@
   .map-label.align-top    { transform: translate(-50%, -100%); margin-top: -6px; }
   .map-label.align-bottom { transform: translate(-50%, 0); margin-top: 6px; }
 
+  /* Optional marker drawn on the label's own point, under the text plate. */
+  .map-icon {
+    position: absolute; left: 0; top: 0;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+  }
+  /* peak: small blue triangle (CSS border trick, hence the zero-sized box) */
+  .map-icon-peak {
+    width: 0; height: 0;
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+    border-bottom: 9px solid #2196f3;
+    filter: drop-shadow(0 0 1px rgba(0, 0, 0, 0.8));
+  }
+
   #tracks-table { width: 100%; border-collapse: collapse; font-size: 12px; }
   #tracks-table th {
     text-align: left; padding: 6px 8px;

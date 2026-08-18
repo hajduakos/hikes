@@ -105,10 +105,12 @@ function setLabels(on) {
 // Each label is pinned to a coordinate; `align` names the side of that point the plate
 // sits on ('center' covers it). The marker itself is zero-sized and Leaflet drives its
 // transform, so the offset lives on an inner span that CSS shifts by its own size.
+// An optional `icon` ('peak') adds a second span drawn on the point itself.
 const labelMarkers = LABELS.map(l => L.marker([l.lat, l.lon], {
   icon: L.divIcon({
     className: '',
-    html: '<span class="map-label align-' + (l.align || 'center') + '">' + l.text + '</span>',
+    html: (l.icon ? '<span class="map-icon map-icon-' + l.icon + '"></span>' : '') +
+          '<span class="map-label align-' + (l.align || 'center') + '">' + l.text + '</span>',
     iconSize: [0, 0], iconAnchor: [0, 0],
   }),
   interactive: false,   // never swallow clicks meant for the track underneath
