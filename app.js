@@ -90,12 +90,6 @@ function setPhotos(on) {
   photoBtnLink.classList.toggle('off', !on);
   photoBtnLink.title = on ? 'Hide photos' : 'Show photos';
 }
-function setLabels(on) {
-  labelsVisible = on;
-  labelBtnLink.classList.toggle('off', !on);
-  labelBtnLink.title = on ? 'Hide labels' : 'Show labels';
-  applyLabels(selectedIdx);
-}
 
 // ---- Map labels ----
 // Each label is pinned to a coordinate; `align` names the side of that point the plate
@@ -120,9 +114,15 @@ function applyLabels(idx) {
     if (show) m.addTo(map); else map.removeLayer(m);
   });
 }
+function setLabels(on) {
+  labelsVisible = on;
+  labelBtnLink.classList.toggle('off', !on);
+  labelBtnLink.title = on ? 'Hide labels' : 'Show labels';
+  applyLabels(selectedIdx);
+}
 applyLabels(null);   // not setLabels(): the button and selectedIdx do not exist yet
 
-// ---- Controls (bottom-left): fullscreen + terrain/satellite + photos ----
+// ---- Controls (bottom-left): fullscreen + terrain/satellite + labels + photos ----
 function makeCtrlBtn(parent, icon, title, handler) {
   const bar = L.DomUtil.create('div', 'leaflet-bar map-fs-btn', parent);
   const a = L.DomUtil.create('a', '', bar);
