@@ -6,17 +6,13 @@ const LINE_WEIGHT = 4;
 const DIM_OPACITY = 0.3;
 
 // Elevation-profile slope colouring (grade = rise / run).
-// green: downhill/flat | yellow: 0-10% | orange: 10-20% | red: 20-30% | dark red: >30%
-const SLOPE_MED = 0.10;     // 10% grade
-const SLOPE_STEEP = 0.20;   // 20% grade
-const SLOPE_VSTEEP = 0.30;  // 30% grade
 function slopeColor(grade, dim) {
   if (dim) return 'rgba(255,255,255,0.2)';
-  if (grade > SLOPE_VSTEEP) return '#8b0000'; // dark red
-  if (grade > SLOPE_STEEP)  return '#e53935'; // red
-  if (grade > SLOPE_MED)    return '#fb8c00'; // orange
-  if (grade > 0)            return '#ffb300'; // yellow
-  return '#4caf50';                           // green (downhill / flat)
+  if (grade > 0.30) return '#8b0000'; // >30%: dark red
+  if (grade > 0.20) return '#e53935'; // 20-30%: red
+  if (grade > 0.10) return '#fb8c00'; // 10-20%: orange
+  if (grade > 0)    return '#ffb300'; // 0-10%: yellow
+  return '#4caf50';                   // downhill / flat: green
 }
 
 // ---- Map ----
