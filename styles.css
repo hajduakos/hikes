@@ -59,6 +59,15 @@
     filter: drop-shadow(0 0 1px rgba(0, 0, 0, 0.8));
   }
 
+  /* pause point: blue disc carrying the two bars of a pause glyph */
+  .pause-marker {
+    display: flex; align-items: center; justify-content: center; gap: 2px;
+    width: 16px; height: 16px; border-radius: 50%;
+    background: #2196f3; border: 2px solid #fff;
+    box-shadow: 0 0 3px rgba(0, 0, 0, 0.6);
+  }
+  .pause-marker i { width: 2px; height: 7px; background: #fff; border-radius: 1px; }
+
   #tracks-table { width: 100%; border-collapse: collapse; font-size: 12px; }
   #tracks-table th {
     text-align: left; padding: 6px 8px;

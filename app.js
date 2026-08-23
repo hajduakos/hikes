@@ -174,6 +174,12 @@ function applyHighlight(idx) {
       if (!m) return;
       if (show) m.addTo(map); else map.removeLayer(m);
     });
+    // Pause points belong to one track only, and would clutter the map if they were
+    // all drawn at once, so unlike the markers above they stay hidden until it is
+    // selected — nothing selected means none shown.
+    (t._pauseMarkers || []).forEach(m => {
+      if (idx != null && j === idx) m.addTo(map); else map.removeLayer(m);
+    });
   });
   applyLabels(idx);
   drawElevationChart();
@@ -185,6 +191,14 @@ function selectTrack(i) {
   selectedIdx = (selectedIdx === i) ? null : i;
   applyHighlight(selectedIdx);
 }
+
+// Where a track stopped for a while: a blue disc bearing the two bars of a pause glyph.
+// Non-interactive so it never swallows a click meant for the track underneath.
+const pauseIcon = L.divIcon({
+  className: '',
+  html: '<span class="pause-marker"><i></i><i></i></span>',
+  iconSize: [16, 16], iconAnchor: [8, 8],
+});
 
 TRACKS.forEach((t, idx) => {
   const latlngs = t.points.map(p => [p[0], p[1]]);
@@ -199,6 +213,11 @@ TRACKS.forEach((t, idx) => {
     .on('click', () => selectTrack(idx)).addTo(map);
   t._markerEnd = L.marker(latlngs[latlngs.length - 1], { icon: endIcon })
     .on('click', () => selectTrack(idx)).addTo(map);
+
+  // Built now, added to the map only while this track is selected (see applyHighlight).
+  t._pauseMarkers = (t.pauses || []).map(p => L.marker([p[0], p[1]], {
+    icon: pauseIcon, interactive: false, zIndexOffset: 900,
+  }));
 });
 
 // Continuous trek: every interior junction marker is yellow.
