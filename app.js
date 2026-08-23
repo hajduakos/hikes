@@ -220,7 +220,7 @@ FILL_GAP_WITH_DASH.forEach(i => {
 function buildTable() {
   let html = '<table id="tracks-table"><thead><tr>' +
     '<th>Day</th><th>Name</th><th>Dist</th><th>Gain</th><th>Elapsed</th><th>Moving</th>' +
-    '<th>Min</th><th>Max</th>' +
+    '<th>Start</th><th>End</th><th>Min</th><th>Max</th>' +
     '</tr></thead><tbody>';
   let prevDay = null;
   TRACKS.forEach((t, idx) => {
@@ -230,11 +230,11 @@ function buildTable() {
     const cls = (isNewDay && idx > 0) ? ' class="day-start"' : '';
     html += `<tr data-track-idx="${idx}"${cls}><td>${dayCell}</td><td>${t.name}</td>` +
       `<td>${t.dist}</td><td>${t.gain}</td><td>${t.elapsed}</td><td>${t.moving}</td>` +
-      `<td>${t.minEle}</td><td>${t.maxEle}</td></tr>`;
+      `<td>${t.start}</td><td>${t.end}</td><td>${t.minEle}</td><td>${t.maxEle}</td></tr>`;
   });
   html += `<tr class="total-row"><td></td><td>Total</td>` +
     `<td>${TOTAL.dist}</td><td>${TOTAL.gain}</td><td>${TOTAL.elapsed}</td><td>${TOTAL.moving}</td>` +
-    `<td>${TOTAL.minEle}</td><td>${TOTAL.maxEle}</td></tr>`;
+    `<td>${TOTAL.start}</td><td>${TOTAL.end}</td><td>${TOTAL.minEle}</td><td>${TOTAL.maxEle}</td></tr>`;
   html += '</tbody></table>';
   tracksPanel.innerHTML = html;
 
