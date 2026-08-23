@@ -163,10 +163,14 @@ function applyHighlight(idx) {
   profileHighlight = idx;
   trackLayers.forEach((l, j) => l.setStyle({ opacity: (idx == null || j === idx) ? 1 : DIM_OPACITY }));
   // Show all start/end markers when nothing is selected; otherwise only the
-  // selected track's own start and end markers.
+  // selected track's own start and end markers — plus, where the selected track is
+  // followed by a dashed connector, the next track's start. That dash is a drive, so
+  // the day really ended at its far end. The reverse does not hold: selecting the
+  // track after a gap hides the previous track's end, since that day began here.
   TRACKS.forEach((t, j) => {
-    const show = (idx == null) || (j === idx);
-    [t._markerStart, t._markerEnd].forEach(m => {
+    const own = (idx == null) || (j === idx);
+    const afterGap = idx != null && j === idx + 1 && FILL_GAP_WITH_DASH.indexOf(idx) >= 0;
+    [[t._markerStart, own || afterGap], [t._markerEnd, own]].forEach(([m, show]) => {
       if (!m) return;
       if (show) m.addTo(map); else map.removeLayer(m);
     });
