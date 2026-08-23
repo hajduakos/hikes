@@ -174,6 +174,10 @@ function applyHighlight(idx) {
       if (!m) return;
       if (show) m.addTo(map); else map.removeLayer(m);
     });
+    // The selected track's endpoints grow into play / stop discs; everything else
+    // falls back to the plain dot it would otherwise wear.
+    if (t._markerStart) t._markerStart.setIcon(j === idx ? startIconSel : t._iconStart);
+    if (t._markerEnd) t._markerEnd.setIcon(j === idx ? endIconSel : t._iconEnd);
     // Pause points belong to one track only, and would clutter the map if they were
     // all drawn at once, so unlike the markers above they stay hidden until it is
     // selected — nothing selected means none shown.
@@ -192,13 +196,25 @@ function selectTrack(i) {
   applyHighlight(selectedIdx);
 }
 
-// Where a track stopped for a while: a blue disc bearing the two bars of a pause glyph.
-// Non-interactive so it never swallows a click meant for the track underneath.
-const pauseIcon = L.divIcon({
+// ---- Marker icons ----
+// Endpoints are plain 10px dots until their track is selected, at which point they
+// swap for 16px discs bearing a play / stop glyph — the same disc the pause points use.
+const dotIcon = (color) => L.divIcon({
   className: '',
-  html: '<span class="pause-marker"><i></i><i></i></span>',
+  html: '<div style="width:10px;height:10px;background:' + color + ';border:1px solid #fff;border-radius:50%;"></div>',
+  iconSize: [10, 10], iconAnchor: [5, 5],
+});
+const discIcon = (kind, glyph) => L.divIcon({
+  className: '',
+  html: '<span class="trk-marker trk-' + kind + '">' + glyph + '</span>',
   iconSize: [16, 16], iconAnchor: [8, 8],
 });
+const startIcon = dotIcon('#00c853');
+const endIcon = dotIcon('#e94560');
+const midIcon = dotIcon('#ffd600');
+const startIconSel = discIcon('start', '<i class="play"></i>');
+const endIconSel = discIcon('end', '<i class="stop"></i>');
+const pauseIcon = discIcon('pause', '<i class="bar"></i><i class="bar"></i>');
 
 TRACKS.forEach((t, idx) => {
   const latlngs = t.points.map(p => [p[0], p[1]]);
@@ -207,8 +223,10 @@ TRACKS.forEach((t, idx) => {
   trackLayers.push(line);
   allBounds.extend(line.getBounds());
 
-  const startIcon = L.divIcon({ className: '', html: '<div style="width:10px;height:10px;background:#00c853;border:1px solid #fff;border-radius:50%;"></div>', iconSize: [10,10], iconAnchor: [5,5] });
-  const endIcon = L.divIcon({ className: '', html: '<div style="width:10px;height:10px;background:#e94560;border:1px solid #fff;border-radius:50%;"></div>', iconSize: [10,10], iconAnchor: [5,5] });
+  // The icon each endpoint falls back to when its track is not selected; the junction
+  // pass below overwrites it with the yellow dot for every interior endpoint.
+  t._iconStart = startIcon;
+  t._iconEnd = endIcon;
   t._markerStart = L.marker(latlngs[0], { icon: startIcon })
     .on('click', () => selectTrack(idx)).addTo(map);
   t._markerEnd = L.marker(latlngs[latlngs.length - 1], { icon: endIcon })
@@ -221,8 +239,9 @@ TRACKS.forEach((t, idx) => {
 });
 
 // Continuous trek: every interior junction marker is yellow.
-const midIcon = L.divIcon({ className: '', html: '<div style="width:10px;height:10px;background:#ffd600;border:1px solid #fff;border-radius:50%;"></div>', iconSize: [10,10], iconAnchor: [5,5] });
 for (let i = 0; i < TRACKS.length - 1; i++) {
+  TRACKS[i]._iconEnd = midIcon;
+  TRACKS[i + 1]._iconStart = midIcon;
   TRACKS[i]._markerEnd.setIcon(midIcon);
   TRACKS[i + 1]._markerStart.setIcon(midIcon);
 }

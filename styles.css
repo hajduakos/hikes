@@ -59,14 +59,25 @@
     filter: drop-shadow(0 0 1px rgba(0, 0, 0, 0.8));
   }
 
-  /* pause point: blue disc carrying the two bars of a pause glyph */
-  .pause-marker {
+  /* 16px disc markers: the pause points, and the selected track's own endpoints. */
+  .trk-marker {
     display: flex; align-items: center; justify-content: center; gap: 2px;
     width: 16px; height: 16px; border-radius: 50%;
-    background: #2196f3; border: 2px solid #fff;
+    border: 2px solid #fff;
     box-shadow: 0 0 3px rgba(0, 0, 0, 0.6);
   }
-  .pause-marker i { width: 2px; height: 7px; background: #fff; border-radius: 1px; }
+  .trk-pause { background: #2196f3; }
+  .trk-start { background: #00c853; }
+  .trk-end   { background: #e94560; }
+  .trk-marker .bar  { width: 2px; height: 7px; background: #fff; border-radius: 1px; }
+  .trk-marker .stop { width: 6px; height: 6px; background: #fff; border-radius: 1px; }
+  /* play: white triangle (CSS border trick), nudged right to look optically centred */
+  .trk-marker .play {
+    width: 0; height: 0; margin-left: 2px;
+    border-top: 4px solid transparent;
+    border-bottom: 4px solid transparent;
+    border-left: 6px solid #fff;
+  }
 
   #tracks-table { width: 100%; border-collapse: collapse; font-size: 12px; }
   #tracks-table th {
