@@ -175,9 +175,13 @@ function applyHighlight(idx) {
       if (show) m.addTo(map); else map.removeLayer(m);
     });
     // The selected track's endpoints grow into play / stop discs; everything else
-    // falls back to the plain dot it would otherwise wear.
-    if (t._markerStart) t._markerStart.setIcon(j === idx ? startIconSel : t._iconStart);
-    if (t._markerEnd) t._markerEnd.setIcon(j === idx ? endIconSel : t._iconEnd);
+    // falls back to the plain dot it would otherwise wear. A track flagged `reversed`
+    // was walked against the trek's direction and had its points flipped so the line
+    // still reads onward, which puts the walk's finish at the head of the polyline —
+    // so the two glyphs swap, and play always marks where the day actually began.
+    const playAtHead = !t.reversed;
+    if (t._markerStart) t._markerStart.setIcon(j === idx ? (playAtHead ? startIconSel : endIconSel) : t._iconStart);
+    if (t._markerEnd) t._markerEnd.setIcon(j === idx ? (playAtHead ? endIconSel : startIconSel) : t._iconEnd);
     // Pause points belong to one track only, and would clutter the map if they were
     // all drawn at once, so unlike the markers above they stay hidden until it is
     // selected — nothing selected means none shown.
