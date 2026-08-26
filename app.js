@@ -200,6 +200,27 @@ function selectTrack(i) {
   applyHighlight(selectedIdx);
 }
 
+// Arrow keys step through the tracks: with nothing selected Down starts at the first
+// track and Up at the last, and at either end the selection stays put rather than
+// wrapping. Leaflet gives its container a tabindex and pans on the arrow keys while it
+// holds focus, so a keypress aimed at the map is left well alone — click off the map
+// (a table row, say) to step tracks again.
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
+  if (lightbox.classList.contains('open')) return;   // arrows belong to the photo view
+  if (map.getContainer().contains(e.target)) return; // the map has focus: let it pan
+  e.preventDefault();   // step the selection rather than scrolling the page
+  const step = e.key === 'ArrowDown' ? 1 : -1;
+  const next = (selectedIdx == null)
+    ? (step > 0 ? 0 : TRACKS.length - 1)
+    : Math.max(0, Math.min(TRACKS.length - 1, selectedIdx + step));
+  if (next === selectedIdx) return;
+  selectedIdx = next;
+  applyHighlight(selectedIdx);
+  const row = tracksPanel.querySelector(`tr[data-track-idx="${next}"]`);
+  if (row) row.scrollIntoView({ block: 'nearest' });
+});
+
 // ---- Marker icons ----
 // Endpoints are plain 10px dots until their track is selected, at which point they
 // swap for 16px discs bearing a play / stop glyph — the same disc the pause points use.
